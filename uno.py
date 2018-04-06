@@ -136,11 +136,8 @@ class UnoGame:
 
     >>> game = UnoGame(5)
     """
-    def __init__(self, players, random=True):
-        if not isinstance(players, int):
-            raise ValueError('Invalid game: players must be integer')
-        if not 2 <= players <= 15:
-            raise ValueError('Invalid game: must be between 2 and 15 players')
+    def __init__(self, random=True):
+        players = 4
         self.deck = self._create_deck(random)
         self.players = [
             UnoPlayer(self._deal_hand(), n) for n in range(players)
