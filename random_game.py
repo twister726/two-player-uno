@@ -1,5 +1,6 @@
 from uno import UnoGame
 import random
+import operator
 
 COLORS = ['red', 'yellow', 'green', 'blue']
 ALL_COLORS = COLORS + ['black']
@@ -17,6 +18,15 @@ game = UnoGame(players)
 
 print("Starting a {} player game".format(players))
 
+choice_state = {'enemy_streak': {'color': None, 'num': 1}}
+
+def update_state(player_id, last_card):
+    if last_card.color == choice_state['enemy_streak']['color']:
+        choice_state['enemy_streak']['num'] += 1
+    else:
+        choice_state['enemy_streak']['num'] = 1
+        choice_state['enemy_streak']['color'] = last_card.color
+
 def choose_card(player): 
     """
     Returns the index in the player's hand of the card he should play. Also returns new color of game
@@ -32,23 +42,33 @@ def choose_card(player):
 
     # Get list of player's action cards
     playable_action_cards = []
+    playable_black_cards = []
+    playable_special_cards = []
     for card in player.hand:
         if card.card_type in BLACK_CARD_TYPES:
-            playable_action_cards.append(card)
+            playable_black_cards.append(card)
         elif card.card_type in SPECIAL_CARD_TYPES and game.current_card.playable(card):
-            playable_action_cards.append(card)
+            playable_special_cards.append(card)
+    playable_action_cards = playable_black_cards + playable_special_cards
+
+    # Get list of same number cards
+    same_number_cards = []
+    for card in player.hand:
+        if (card.card_type not in (SPECIAL_CARD_TYPES + BLACK_CARD_TYPES)) and card.card_type == game.current_card.card_type:
+            same_number_cards.append(card)
 
     print('Player id:', player_id)
     print('Player Hand:', player.hand)
     print('playable_action_cards:', playable_action_cards)
 
-    # Get most common color in team
+    # Get list of colors sorted by how common in team
     teammate = game.players[(player_id + 2) % 4]
     team_color_numbers = {'red': 0, 'blue': 0, 'yellow': 0, 'green': 0}
     for card in player.hand + teammate.hand:
         if card.color != 'black':
             team_color_numbers[card.color] += 1
-    most_common_color = max(team_color_numbers, key=team_color_numbers.get)
+    sorted_colors = [tup[0] for tup in sorted(team_color_numbers.items(), key=operator.itemgetter(1))]
+    most_common_color = sorted_colors[-1]
 
     # Strategy 1 - if next player has <= 2 cards, play any action card if possible
     if len(next_player.hand) <= 2 and len(playable_action_cards) > 0:
@@ -57,6 +77,23 @@ def choose_card(player):
         if best_card.card_type in BLACK_CARD_TYPES:
             new_color = most_common_color
         best_card_index = player.hand.index(best_card)
+
+        return best_card_index, new_color
+
+    # Strategy 2 - if enemy has played >= thres same color cards in a row, change color to another best possible color, using wildcard 
+    #              if necessary
+    thres = 5
+    if choice_state['enemy_streak']['num'] >= thres:
+        if len(same_number_cards) > 0: # We have a non-special playable card
+            best_card = max(same_number_cards, key = lambda t: sorted_colors.index(t.color))
+            best_card_index = player.hand.index(best_card)
+            new_color = best_card.color
+            return best_card_index, new_color
+        elif len(playable_black_cards) > 0:
+            best_card = max(playable_black_cards, key = lambda t: SPECIAL_CARD_PRIORITY.index(t.card_type))
+            best_card_index = player.hand.index(best_card)
+            new_color = most_common_color
+            return best_card_index, new_color
 
     # Default strategy - play a random playable card
     for i, card in enumerate(player.hand):
@@ -78,6 +115,7 @@ while game.is_active:
         if player_id == 1 or player_id == 3: # Our bot
             card, new_color = choose_card(player)
             print("Player {} played {}".format(player, player.hand[card]))
+            # print('New Color: ', new_color)
             game.play(player=player_id, card=card, new_color=new_color)
         else:
             for i, card in enumerate(player.hand):
@@ -87,6 +125,7 @@ while game.is_active:
                     else:
                         new_color = None
                     print("Player {} played {}".format(player, card))
+                    update_state(player_id, player.hand[i])
                     game.play(player=player_id, card=i, new_color=new_color)
                     break
     else:
