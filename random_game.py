@@ -18,7 +18,8 @@ game = UnoGame(players)
 
 print("Starting a {} player game".format(players))
 
-choice_state = {'enemy_streak': {'color': None, 'num': 1}}
+choice_state = {'enemy_streak': {'color': None, 'num': 1},
+                'enemy_out_of_cards': {'color': None, 0: False, 2: False}}
 
 def update_state(player_id, last_card):
     if last_card.color == choice_state['enemy_streak']['color']:
@@ -51,11 +52,14 @@ def choose_card(player):
             playable_special_cards.append(card)
     playable_action_cards = playable_black_cards + playable_special_cards
 
-    # Get list of same number cards
+    # Get list of same number cards and same color cards
     same_number_cards = []
+    same_color_cards = []
     for card in player.hand:
         if (card.card_type not in (SPECIAL_CARD_TYPES + BLACK_CARD_TYPES)) and card.card_type == game.current_card.card_type:
             same_number_cards.append(card)
+        if (card.card_type not in BLACK_CARD_TYPES) and card.color == game.current_card.color:
+            same_color_cards.append(card)
 
     print('Player id:', player_id)
     print('Player Hand:', player.hand)
@@ -95,6 +99,25 @@ def choose_card(player):
             new_color = most_common_color
             return best_card_index, new_color
 
+    # Strategy 3 - if enemy had to draw card for a color, try to play that color
+    if choice_state['enemy_out_of_cards'][0] or choice_state['enemy_out_of_cards'][2]:
+        possible_cards = [card for card in player.hand if (game.current_card.playable(card) and card.color == choice_state['enemy_out_of_cards']['color'])]
+        if len(possible_cards) > 0:
+            done = False
+            for card in possible_cards:
+                if card.card_type not in SPECIAL_CARD_TYPES:
+                    best_card_index = player.hand.index(card)
+                    new_color = card.color
+                    done = True
+                    break
+            if done == False:
+                card = possible_cards[0]
+                best_card_index = player.hand.index(card)
+                new_color = card.color
+            print(new_color)
+            return best_card_index, new_color
+
+
     # Default strategy - play a random playable card
     for i, card in enumerate(player.hand):
         if game.current_card.playable(card):
@@ -105,6 +128,8 @@ def choose_card(player):
 
     return best_card_index, new_color
 
+last_turn_new_color = None
+
 count = 0
 while game.is_active:
     count += 1
@@ -114,6 +139,7 @@ while game.is_active:
     if player.can_play(game.current_card):
         if player_id == 1 or player_id == 3: # Our bot
             card, new_color = choose_card(player)
+            last_turn_new_color = new_color
             print("Player {} played {}".format(player, player.hand[card]))
             # print('New Color: ', new_color)
             game.play(player=player_id, card=card, new_color=new_color)
@@ -125,10 +151,22 @@ while game.is_active:
                     else:
                         new_color = None
                     print("Player {} played {}".format(player, card))
+
                     update_state(player_id, player.hand[i])
+                    choice_state['enemy_out_of_cards'][player.player_id] = False # Related to strategy 3
+
                     game.play(player=player_id, card=i, new_color=new_color)
                     break
     else:
+        # Related to Strategy 3
+        if player.player_id == 0 or player.player_id == 2:
+            if game.current_card.card_type != '+4':
+                if game.current_card.card_type == 'wildcard':
+                    choice_state['enemy_out_of_cards']['color'] = last_turn_new_color
+                else:
+                    choice_state['enemy_out_of_cards']['color'] = game.current_card.color
+                choice_state['enemy_out_of_cards'][player.player_id] = True
+
         print("Player {} picked up".format(player))
         game.play(player=player_id, card=None)
 
