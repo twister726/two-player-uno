@@ -119,7 +119,7 @@ def choose_card(player):
                 card = possible_cards[0]
                 best_card_index = player.hand.index(card)
                 new_color = card.color
-            print(new_color)
+            # print(new_color)
             return best_card_index, new_color
 
     # Default strategy - play a random playable card
@@ -179,7 +179,7 @@ while game.is_active:
 
 
 scores = np.array([-1, -1, -1, -1])
-# scores[int(player.player_id)] = 1000
+scores[int(player.player_id)] = 1000
 for i in range(8):
     if scores[int(player.player_id)] != -1:
         player = next(game._player_cycle)
@@ -194,5 +194,8 @@ for i in range(8):
                 scores[int(player.player_id)] += 50
     player = next(game._player_cycle)
 
-print("{} player game - {} cards played".format(players, count))
-print(scores)
+# print(scores)
+print('Player', np.argmin(scores), '2nd place')
+scores[np.argmin(scores)] = 1000
+print('Player', np.argmin(scores), '3rd place')
+print("{} cards played".format(count))
