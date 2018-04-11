@@ -19,6 +19,7 @@ game = UnoGame(players)
 print("Starting a {} player game".format(players))
 
 choice_state = {'enemy_streak': {'color': None, 'num': 1},
+                'enemy_longest': 1,
                 'enemy_out_of_cards': {'color': None, 0: False, 2: False}}
 
 def update_state(player_id, last_card):
@@ -119,7 +120,6 @@ def choose_card(player):
                 new_color = card.color
             print(new_color)
             return best_card_index, new_color
-
 
     # Default strategy - play a random playable card
     for i, card in enumerate(player.hand):
