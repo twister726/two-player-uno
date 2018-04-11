@@ -122,7 +122,7 @@ def choose_card(player):
     for i, card in enumerate(player.hand):
         if game.current_card.playable(card):
             if card.color == 'black':
-                new_color = random.choice(COLORS)
+                new_color = most_common_color
             best_card_index = player.hand.index(card)
             break
 
