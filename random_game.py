@@ -45,7 +45,10 @@ def choose_card(player):
     playable_action_cards = []
     playable_black_cards = []
     playable_special_cards = []
+    playable_cards = []
     for card in player.hand:
+        if game.current_card.playable(card):
+            playable_cards.append(card)
         if card.card_type in BLACK_CARD_TYPES:
             playable_black_cards.append(card)
         elif card.card_type in SPECIAL_CARD_TYPES and game.current_card.playable(card):
@@ -121,6 +124,9 @@ def choose_card(player):
     # Default strategy - play a random playable card
     for i, card in enumerate(player.hand):
         if game.current_card.playable(card):
+            # Prefer not to play special cards 
+            if card.card_type in SPECIAL_CARD_PRIORITY and (len(playable_cards) - len(playable_action_cards) > 0):
+                continue
             if card.color == 'black':
                 new_color = most_common_color
             best_card_index = player.hand.index(card)
