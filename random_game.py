@@ -1,6 +1,7 @@
 from uno import UnoGame
 import random
 import operator
+import numpy as np
 
 COLORS = ['red', 'yellow', 'green', 'blue']
 ALL_COLORS = COLORS + ['black']
@@ -176,4 +177,22 @@ while game.is_active:
         print("Player {} picked up".format(player))
         game.play(player=player_id, card=None)
 
+
+scores = np.array([-1, -1, -1, -1])
+# scores[int(player.player_id)] = 1000
+for i in range(8):
+    if scores[int(player.player_id)] != -1:
+        player = next(game._player_cycle)
+        continue
+    for card in player.hand:
+        if card.card_type not in SPECIAL_CARD_PRIORITY:
+            scores[int(player.player_id)] += int(card.card_type)
+        else:
+            if card.card_type in SPECIAL_CARD_TYPES:
+                scores[int(player.player_id)] += 20
+            elif card.card_type in BLACK_CARD_TYPES:
+                scores[int(player.player_id)] += 50
+    player = next(game._player_cycle)
+
 print("{} player game - {} cards played".format(players, count))
+print(scores)
