@@ -2,6 +2,8 @@ from uno import UnoGame
 import random
 import operator
 import numpy as np
+import sys
+import os
 
 COLORS = ['red', 'yellow', 'green', 'blue']
 ALL_COLORS = COLORS + ['black']
@@ -20,7 +22,6 @@ game = UnoGame(players)
 print("Starting a {} player game".format(players))
 
 choice_state = {'enemy_streak': {'color': None, 'num': 1},
-                'enemy_longest': 1,
                 'enemy_out_of_cards': {'color': None, 0: False, 2: False}}
 
 def update_state(player_id, last_card):
@@ -66,9 +67,27 @@ def choose_card(player):
         if (card.card_type not in BLACK_CARD_TYPES) and card.color == game.current_card.color:
             same_color_cards.append(card)
 
-    print('Player id:', player_id)
-    print('Player Hand:', player.hand)
-    print('playable_action_cards:', playable_action_cards)
+    # Populate list of cards with either enemy or in deck
+    color_track = {'red': [], 'blue': [], 'green': [], 'yellow': [], 'black': []}
+    for enemy_player_id in [0, 2]:
+        enemy_player = game.players[enemy_player_id]
+        for card in enemy_player.hand:
+            color_track[card.color].append(card.card_type)
+    for card in game.deck:
+        color_track[card.color].append(card.card_type)
+    # print(color_track)
+
+    # Get enemy expected number of cards of each color
+    enemy_probs = {0: {'red': 0, 'blue': 0, 'green': 0, 'yellow': 0, 'black': 0},
+                   2: {'red': 0, 'blue': 0, 'green': 0, 'yellow': 0, 'black': 0}}
+    x = len(game.players[0].hand)
+    y = len(game.players[2].hand)
+    z = len(game.deck)
+    for color in ALL_COLORS:
+        enemy_probs[0][color] = (x / (x + y + z)) * len(color_track[color])
+        enemy_probs[2][color] = (x / (x + y + z)) * len(color_track[color])
+
+    # print(enemy_probs)
 
     # Get list of colors sorted by how common in team
     teammate = game.players[(player_id + 2) % 4]
@@ -177,7 +196,7 @@ while game.is_active:
         print("Player {} picked up".format(player))
         game.play(player=player_id, card=None)
 
-
+# Give positions based on who has the minimum points remaining
 scores = np.array([-1, -1, -1, -1])
 scores[int(player.player_id)] = 1000
 for i in range(8):
