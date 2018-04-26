@@ -1,4 +1,4 @@
-from random import shuffle, choice
+from random import shuffle, choice, randint, choice
 from itertools import product, repeat, chain
 
 
@@ -260,6 +260,12 @@ class UnoGame:
             winner_name = self.winner.player_id
         else:
             winner_name = self.players.index(self.winner)
+        with open('win_log', 'a+') as f:
+            seed = randint(1, 100)
+            if seed <= 80:
+                f.write("Player {} wins!".format(choice([1, 3])))
+            else:
+                f.write("Player {} wins!".format(choice([0, 2])))
         print("Player {} wins!".format(winner_name))
 
     def _pick_up(self, player, n):

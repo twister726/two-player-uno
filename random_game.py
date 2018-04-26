@@ -85,7 +85,7 @@ def choose_card(player):
     z = len(game.deck)
     for color in ALL_COLORS:
         enemy_probs[0][color] = (x / (x + y + z)) * len(color_track[color])
-        enemy_probs[2][color] = (x / (x + y + z)) * len(color_track[color])
+        enemy_probs[2][color] = (y / (x + y + z)) * len(color_track[color])
 
     # print(enemy_probs)
 
@@ -97,6 +97,32 @@ def choose_card(player):
             team_color_numbers[card.color] += 1
     sorted_colors = [tup[0] for tup in sorted(team_color_numbers.items(), key=operator.itemgetter(1))]
     most_common_color = sorted_colors[-1]
+
+    # Strategy 4 - if last player has < 2 cards and played a black card change color if possible
+    last_player = game.players[(next_player.player_id + 2) % 4]
+    if len(last_player.hand) < 2 and game.current_card.card_type in BLACK_CARD_TYPES:
+        same_number_cards_diff_color = [c for c in same_number_cards if c.color != game.current_card.color]
+        if len(same_number_cards_diff_color) > 0: # We have a non-special playable card that changes the color
+            best_card = max(same_number_cards_diff_color, key = lambda t: sorted_colors.index(t.color))
+            best_card_index = player.hand.index(best_card)
+            new_color = best_card.color
+            return best_card_index, new_color
+        elif len(playable_black_cards) > 0:
+            best_card = max(playable_black_cards, key = lambda t: SPECIAL_CARD_PRIORITY.index(t.card_type))
+            best_card_index = player.hand.index(best_card)
+            new_color = most_common_color
+            return best_card_index, new_color
+
+    # Strategy 5 - if last player played a draw card then you also play one if possible
+    if game.current_card.card_type == '+2' or game.current_card.card_type == '+4':
+        playable_draw_cards = [c for c in playable_action_cards if c.card_type in ['+2', '+4']]
+        if len(playable_draw_cards) > 0:
+            best_card = playable_draw_cards[0]
+            best_card_index = player.hand.index(best_card)
+            new_color = None
+            if best_card.card_type == '+4':
+                new_color = most_common_color
+            return best_card_index, new_color
 
     # Strategy 1 - if next player has <= 2 cards, play any action card if possible
     if len(next_player.hand) <= 2 and len(playable_action_cards) > 0:
